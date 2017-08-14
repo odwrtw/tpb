@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/jpillora/scraper/scraper"
-	"github.com/kr/pretty"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -44,7 +43,7 @@ func New(endpoint string) *Client {
 			"seeds":    scraper.Extractors{scraper.MustExtractor("td:nth-child(3)")},
 			"peers":    scraper.Extractors{scraper.MustExtractor("td:nth-child(4)")},
 		},
-		Debug: true,
+		Debug: false,
 	}
 
 	return &Client{
@@ -149,7 +148,6 @@ func (c *Client) parseTorrent(vars map[string]string) ([]Torrent, error) {
 	}
 
 	torrents := []Torrent{}
-	pretty.Println(res)
 
 	// Map the res to our structure
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
