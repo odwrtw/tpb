@@ -38,7 +38,7 @@ func New(endpoint string) *Client {
 			"path":     scraper.Extractors{scraper.MustExtractor("a.detLink"), scraper.MustExtractor("@href")},
 			"category": scraper.Extractors{scraper.MustExtractor(".vertTh"), scraper.MustExtractor("center"), scraper.MustExtractor("s/\\s//g")},
 			"magnet":   scraper.Extractors{scraper.MustExtractor("a[title=Download\\ this\\ torrent\\ using\\ magnet]"), scraper.MustExtractor("@href")},
-			"size":     scraper.Extractors{scraper.MustExtractor("/Size (\\d+(\\.\\d+).[KMG]iB)/")},
+			"size":     scraper.Extractors{scraper.MustExtractor("font.detDesc"), scraper.MustExtractor("/Size (\\d+(\\.\\d+)?.*[KMG]iB)/")},
 			"user":     scraper.Extractors{scraper.MustExtractor("a.detDesc")},
 			"seeds":    scraper.Extractors{scraper.MustExtractor("td:nth-child(3)")},
 			"peers":    scraper.Extractors{scraper.MustExtractor("td:nth-child(4)")},
