@@ -1,6 +1,7 @@
 package tpb
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -40,6 +41,16 @@ type SearchOptions struct {
 	Category TorrentCategory
 }
 
+func (so *SearchOptions) String() string {
+	return fmt.Sprintf(
+		"/search/%s/%d/%s/%d/",
+		so.Key,
+		so.Page,
+		mapOrderBy(so.OrderBy, so.Sort),
+		int(so.Category),
+	)
+}
+
 // UserOptions represent the options for a User lookup
 type UserOptions struct {
 	OrderBy OrderBy
@@ -48,29 +59,37 @@ type UserOptions struct {
 	User    string
 }
 
+func (uo *UserOptions) String() string {
+	return fmt.Sprintf(
+		"/user/%s/%d/%s/0/",
+		uo.User,
+		uo.Page,
+		mapOrderBy(uo.OrderBy, uo.Sort),
+	)
+}
+
+// SearchWithCtx will search Torrents with a context
+func (c *Client) SearchWithCtx(ctx context.Context, opt SearchOptions) ([]Torrent, error) {
+	url := c.Endpoint + opt.String()
+	return c.fetchTorrents(ctx, url)
+}
+
 // Search will search Torrents
 func (c *Client) Search(opt SearchOptions) ([]Torrent, error) {
-	url := fmt.Sprintf(
-		"%s/search/%s/%d/%s/%d/",
-		c.Endpoint,
-		opt.Key,
-		opt.Page,
-		mapOrderBy(opt.OrderBy, opt.Sort),
-		int(opt.Category),
-	)
-	return c.parseTorrent(url)
+	ctx := context.Background()
+	return c.SearchWithCtx(ctx, opt)
+}
+
+// UserWithContext will return a user's Torrents with a context
+func (c *Client) UserWithContext(ctx context.Context, opt UserOptions) ([]Torrent, error) {
+	url := c.Endpoint + opt.String()
+	return c.fetchTorrents(ctx, url)
 }
 
 // User will return a user's Torrents
 func (c *Client) User(opt UserOptions) ([]Torrent, error) {
-	url := fmt.Sprintf(
-		"%s/user/%s/%d/%s/0/",
-		c.Endpoint,
-		opt.User,
-		opt.Page,
-		mapOrderBy(opt.OrderBy, opt.Sort),
-	)
-	return c.parseTorrent(url)
+	ctx := context.Background()
+	return c.UserWithContext(ctx, opt)
 }
 
 // FilterByUsers will filter the results and return only those from the given
@@ -87,10 +106,9 @@ func FilterByUsers(torrents []Torrent, users []string) []Torrent {
 	return filteredTorrents
 }
 
-// parseTorrent takes a map of parameters, it will do the request and return
-// the parsed Torrents
-func (c *Client) parseTorrent(url string) ([]Torrent, error) {
+func (c *Client) fetchTorrents(ctx context.Context, url string) ([]Torrent, error) {
 	torrents := []Torrent{}
+	done := make(chan struct{})
 
 	co := colly.NewCollector()
 	co.OnHTML("#searchResult", func(e *colly.HTMLElement) {
@@ -133,7 +151,19 @@ func (c *Client) parseTorrent(url string) ([]Torrent, error) {
 				Category: category,
 			})
 		})
+		done <- struct{}{}
 	})
 
-	return torrents, co.Visit(url)
+	var err error
+	go func() {
+		err = co.Visit(url)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return torrents, err
+	case <-ctx.Done():
+		return torrents, ctx.Err()
+	}
 }
