@@ -2,14 +2,14 @@ package tpb
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
-	"github.com/jpillora/scraper/scraper"
-	"github.com/mitchellh/mapstructure"
+	"github.com/gocolly/colly/v2"
 )
 
 // Client represent a Client used to make Search
 type Client struct {
-	scraper  *scraper.Endpoint
 	Endpoint string
 }
 
@@ -26,52 +26,10 @@ type Torrent struct {
 
 // New return a new Client
 func New(endpoint string) *Client {
-	e := &scraper.Endpoint{
-		Name:   "TPB",
-		Method: "GET",
-		List:   "#searchResult > tbody > tr",
-		Headers: map[string]string{
-			"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2988.133 Safari/537.36",
-		},
-		Result: map[string]scraper.Extractors{
-			"name":     scraper.Extractors{scraper.MustExtractor("a.detLink")},
-			"path":     scraper.Extractors{scraper.MustExtractor("a.detLink"), scraper.MustExtractor("@href")},
-			"category": scraper.Extractors{scraper.MustExtractor(".vertTh"), scraper.MustExtractor("center"), scraper.MustExtractor("s/\\s//g")},
-			"magnet":   scraper.Extractors{scraper.MustExtractor("a[title=Download\\ this\\ torrent\\ using\\ magnet]"), scraper.MustExtractor("@href")},
-			"size":     scraper.Extractors{scraper.MustExtractor("font.detDesc"), scraper.MustExtractor("/Size (\\d+(\\.\\d+)?.*[KMG]iB)/")},
-			"user":     scraper.Extractors{scraper.MustExtractor("a.detDesc")},
-			"seeds":    scraper.Extractors{scraper.MustExtractor("td:nth-child(3)")},
-			"peers":    scraper.Extractors{scraper.MustExtractor("td:nth-child(4)")},
-		},
-		Debug: false,
-	}
-
 	return &Client{
-		scraper:  e,
-		Endpoint: endpoint,
+		Endpoint: strings.TrimRight(endpoint, "/"),
 	}
 }
-
-// OrderBy represent the different values the search can be ordered by
-type OrderBy int
-
-// List of the different Orders available
-const (
-	OrderByName OrderBy = iota
-	OrderByDate
-	OrderBySize
-	OrderBySeeds
-	OrderByLeeches
-)
-
-// SortOrder represents the sort order
-type SortOrder int
-
-// List of the different sort order
-const (
-	Desc SortOrder = 1 + iota
-	Asc
-)
 
 // SearchOptions represent the options for a Search lookup
 type SearchOptions struct {
@@ -90,38 +48,29 @@ type UserOptions struct {
 	User    string
 }
 
-const defaultSearchPattern = "/search/{{query}}/{{page:0}}/{{orderBy:7}}/{{category:0}}/"
-const defaultUserPattern = "/user/{{user}}/{{page:0}}/{{orderBy:7}}/{{category:0}}/"
-
 // Search will search Torrents
 func (c *Client) Search(opt SearchOptions) ([]Torrent, error) {
-	c.scraper.URL = fmt.Sprintf("%s%s", c.Endpoint, defaultSearchPattern)
-
-	vars := map[string]string{
-		"query":    opt.Key,
-		"page":     fmt.Sprintf("%d", opt.Page),
-		"category": fmt.Sprintf("%d", opt.Category),
-		"orderBy":  mapOrderBy(opt.OrderBy, opt.Sort),
-	}
-	return c.parseTorrent(vars)
+	url := fmt.Sprintf(
+		"%s/search/%s/%d/%s/%d/",
+		c.Endpoint,
+		opt.Key,
+		opt.Page,
+		mapOrderBy(opt.OrderBy, opt.Sort),
+		int(opt.Category),
+	)
+	return c.parseTorrent(url)
 }
 
 // User will return a user's Torrents
 func (c *Client) User(opt UserOptions) ([]Torrent, error) {
-	c.scraper.URL = fmt.Sprintf("%s%s", c.Endpoint, defaultUserPattern)
-
-	vars := map[string]string{
-		"user":    opt.User,
-		"page":    fmt.Sprintf("%d", opt.Page),
-		"orderBy": mapOrderBy(opt.OrderBy, opt.Sort),
-	}
-	return c.parseTorrent(vars)
-}
-
-// mapOrderBy takes the orderBy and sort order parameter and return the
-// corresponding option to pass to the website
-func mapOrderBy(orderBy OrderBy, order SortOrder) string {
-	return fmt.Sprintf("%d", int(orderBy)*2+int(order))
+	url := fmt.Sprintf(
+		"%s/user/%s/%d/%s/0/",
+		c.Endpoint,
+		opt.User,
+		opt.Page,
+		mapOrderBy(opt.OrderBy, opt.Sort),
+	)
+	return c.parseTorrent(url)
 }
 
 // FilterByUsers will filter the results and return only those from the given
@@ -140,28 +89,51 @@ func FilterByUsers(torrents []Torrent, users []string) []Torrent {
 
 // parseTorrent takes a map of parameters, it will do the request and return
 // the parsed Torrents
-func (c *Client) parseTorrent(vars map[string]string) ([]Torrent, error) {
-	// Parse the page
-	res, err := c.scraper.Execute(vars)
-	if err != nil {
-		return nil, err
-	}
-
+func (c *Client) parseTorrent(url string) ([]Torrent, error) {
 	torrents := []Torrent{}
 
-	// Map the res to our structure
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		WeaklyTypedInput: true,
-		Result:           &torrents,
+	co := colly.NewCollector()
+	co.OnHTML("#searchResult", func(e *colly.HTMLElement) {
+		e.ForEach("tbody > tr", func(i int, se *colly.HTMLElement) {
+			data := struct {
+				Name     string `selector:"td > div.detName > a.detLink"`
+				Peers    string `selector:"td:nth-child(4)"`
+				Seeds    string `selector:"td:nth-child(3)"`
+				User     string `selector:"a.detDesc"`
+				Magnet   string `selector:"td:nth-child(2) > a:nth-child(2)" attr:"href"`
+				Desc     string `selector:"td:nth-child(2) > font"`
+				Category string `selector:"td.vertTh > center"`
+			}{}
+			se.Unmarshal(&data)
+
+			var peers, seeds int
+			peers, _ = strconv.Atoi(data.Peers)
+			seeds, _ = strconv.Atoi(data.Seeds)
+
+			// Get the size from description
+			// e.g. Uploaded 09-10 2011, Size 703.9 MiB, ULed by YIFY
+			// the size should be "703.9 MiB"
+			var size string
+			parts := strings.Fields(data.Desc)
+			if len(parts) > 5 {
+				size = parts[4] + " " + strings.Trim(parts[5], ",")
+			}
+
+			// Parse the category
+			category := strings.ReplaceAll(data.Category, "\n", "")
+			category = strings.ReplaceAll(category, "\t", "")
+
+			torrents = append(torrents, Torrent{
+				Name:     data.Name,
+				Peers:    peers,
+				Seeds:    seeds,
+				User:     data.User,
+				Magnet:   data.Magnet,
+				Size:     size,
+				Category: category,
+			})
+		})
 	})
-	if err != nil {
-		return nil, err
-	}
 
-	err = decoder.Decode(res)
-	if err != nil {
-		return nil, err
-	}
-
-	return torrents, nil
+	return torrents, co.Visit(url)
 }
