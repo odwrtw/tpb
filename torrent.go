@@ -3,8 +3,8 @@ package tpb
 // Torrent represents a Torrent
 type Torrent struct {
 	Name        string
-	Peers       int
-	Seeds       int
+	Leechers    int
+	Seeders     int
 	User        string
 	Magnet      string
 	Size        uint64
