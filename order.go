@@ -1,6 +1,6 @@
 package tpb
 
-import "fmt"
+import "strconv"
 
 // OrderBy represent the different values the search can be ordered by
 type OrderBy int
@@ -26,5 +26,5 @@ const (
 // mapOrderBy takes the orderBy and sort order parameter and return the
 // corresponding option to pass to the website
 func mapOrderBy(orderBy OrderBy, order SortOrder) string {
-	return fmt.Sprintf("%d", int(orderBy)*2+int(order))
+	return strconv.Itoa(int(orderBy)*2 + int(order))
 }
