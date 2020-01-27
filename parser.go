@@ -10,15 +10,35 @@ import (
 
 // Custom parser error
 var (
-	ErrParserPeers       = errors.New("tpb: failed to parse peers")
-	ErrParserSeeds       = errors.New("tpb: failed to parse seeds")
-	ErrParserSize        = errors.New("tpb: failed to parse size")
-	ErrParserCategory    = errors.New("tpb: failed to parse category")
-	ErrParserSubCategory = errors.New("tpb: failed to parse sub category")
+	ErrParserPeers       = NewParserError("tpb: failed to parse peers")
+	ErrParserSeeds       = NewParserError("tpb: failed to parse seeds")
+	ErrParserSize        = NewParserError("tpb: failed to parse size")
+	ErrParserCategory    = NewParserError("tpb: failed to parse category")
+	ErrParserSubCategory = NewParserError("tpb: failed to parse sub category")
 )
 
+// ParserError represents an error due to parsing
+type ParserError struct {
+	err error
+}
+
+// NewParserError returns a new ParserError from an error
+func NewParserError(s string) ParserError {
+	return ParserError{errors.New(s)}
+}
+
+// Unwrap unwraps the error
+func (pe ParserError) Unwrap() error {
+	return pe.err
+}
+
+// Error implements the error interface
+func (pe ParserError) Error() string {
+	return pe.err.Error()
+}
+
 type rawData struct {
-	Torrent *Torrent
+	Torrent *Torrent `selector:"-"`
 
 	Name        string `selector:"td > div.detName > a.detLink"`
 	Peers       string `selector:"td:nth-child(4)"`
@@ -27,7 +47,7 @@ type rawData struct {
 	Magnet      string `selector:"td:nth-child(2) > a:nth-child(2)" attr:"href"`
 	Desc        string `selector:"td:nth-child(2) > font"`
 	Category    string `selector:"td.vertTh > center > a:nth-child(1)" attr:"href"`
-	SubCategory string `selector:"td.vertTh > center > a:nth-child(2)" attr:"href"`
+	SubCategory string `selector:"td.vertTh > center > a:nth-child(3)" attr:"href"`
 }
 
 func (rd *rawData) parse() (*Torrent, error) {

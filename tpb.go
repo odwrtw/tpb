@@ -2,31 +2,70 @@ package tpb
 
 import (
 	"context"
-	"strings"
+	"errors"
+	"time"
 )
+
+var defaultTimeout = 10 * time.Second
+
+// ErrMissingEndpoint is the error returned if there's no endpoint
+var ErrMissingEndpoint = errors.New("tpb: missing endpoint")
 
 // Client represent a Client used to make Search
 type Client struct {
-	Endpoint string
+	endpoints endpoints
+	// MaxTries represent the number total number of endpoint to try to find a
+	// result
+	MaxTries int
+	// DefaultTimeout defines the timeout to use by endpoint
+	DefaultTimeout time.Duration
 }
 
-// Torrent represents a Torrent
-type Torrent struct {
-	Name        string
-	Peers       int
-	Seeds       int
-	User        string
-	Magnet      string
-	Size        uint64
-	Category    TorrentCategory
-	SubCategory TorrentCategory
-}
-
-// New return a new Client
-func New(endpoint string) *Client {
+// NewWithEndpoints returns a new client with multiple endpoints
+func NewWithEndpoints(endpoints []string) *Client {
 	return &Client{
-		Endpoint: strings.TrimRight(endpoint, "/"),
+		endpoints:      newEndpoints(endpoints),
+		MaxTries:       len(endpoints),
+		DefaultTimeout: defaultTimeout,
 	}
+}
+
+// New return a new client with a single endpoint
+func New(endpoint string) *Client {
+	return NewWithEndpoints([]string{endpoint})
+}
+
+func (c *Client) fetch(ctx context.Context, path string) ([]*Torrent, error) {
+	var err error
+	for i := 0; i < c.MaxTries; i++ {
+		endpoint := c.endpoints.best()
+		if endpoint == nil {
+			return nil, ErrMissingEndpoint
+		}
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, c.DefaultTimeout)
+		defer cancel()
+
+		var torrents []*Torrent
+		torrents, err = fetchTorrents(timeoutCtx, endpoint.baseURL+path)
+		if err == nil {
+			return torrents, nil
+		}
+		endpoint.lastFailure = time.Now()
+
+		// Stop if the error is a parsing error
+		if errors.As(err, &ParserError{}) {
+			break
+		}
+
+		// Stop if the global context is done
+		if ctx.Err() != nil {
+			err = ctx.Err()
+			break
+		}
+	}
+
+	return nil, err
 }
 
 // Search will search Torrents
@@ -34,8 +73,8 @@ func (c *Client) Search(ctx context.Context, search string, opts *Options) ([]*T
 	if opts == nil {
 		opts = &DefaultOptions
 	}
-	url := c.Endpoint + "/search/" + search + opts.String()
-	return c.fetchTorrents(ctx, url)
+	path := "/search/" + search + opts.String()
+	return c.fetch(ctx, path)
 }
 
 // User lists the torrents uploaded by a user
@@ -43,6 +82,6 @@ func (c *Client) User(ctx context.Context, user string, opts *Options) ([]*Torre
 	if opts == nil {
 		opts = &DefaultOptions
 	}
-	url := c.Endpoint + "/user/" + user + opts.String()
-	return c.fetchTorrents(ctx, url)
+	path := "/user/" + user + opts.String()
+	return c.fetch(ctx, path)
 }
