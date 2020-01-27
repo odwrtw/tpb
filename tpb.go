@@ -2,7 +2,6 @@ package tpb
 
 import (
 	"context"
-	"fmt"
 	"strings"
 )
 
@@ -30,76 +29,20 @@ func New(endpoint string) *Client {
 	}
 }
 
-// SearchOptions represent the options for a Search lookup
-type SearchOptions struct {
-	Key      string
-	OrderBy  OrderBy
-	Page     int
-	Sort     SortOrder
-	Category TorrentCategory
-}
-
-func (so *SearchOptions) String() string {
-	return fmt.Sprintf(
-		"/search/%s/%d/%s/%d/",
-		so.Key,
-		so.Page,
-		mapOrderBy(so.OrderBy, so.Sort),
-		int(so.Category),
-	)
-}
-
-// UserOptions represent the options for a User lookup
-type UserOptions struct {
-	OrderBy OrderBy
-	Page    int
-	Sort    SortOrder
-	User    string
-}
-
-func (uo *UserOptions) String() string {
-	return fmt.Sprintf(
-		"/user/%s/%d/%s/0/",
-		uo.User,
-		uo.Page,
-		mapOrderBy(uo.OrderBy, uo.Sort),
-	)
-}
-
-// SearchWithCtx will search Torrents with a context
-func (c *Client) SearchWithCtx(ctx context.Context, opt SearchOptions) ([]*Torrent, error) {
-	url := c.Endpoint + opt.String()
-	return c.fetchTorrents(ctx, url)
-}
-
 // Search will search Torrents
-func (c *Client) Search(opt SearchOptions) ([]*Torrent, error) {
-	ctx := context.Background()
-	return c.SearchWithCtx(ctx, opt)
-}
-
-// UserWithContext will return a user's Torrents with a context
-func (c *Client) UserWithContext(ctx context.Context, opt UserOptions) ([]*Torrent, error) {
-	url := c.Endpoint + opt.String()
+func (c *Client) Search(ctx context.Context, search string, opts *Options) ([]*Torrent, error) {
+	if opts == nil {
+		opts = &DefaultOptions
+	}
+	url := c.Endpoint + "/search/" + search + opts.String()
 	return c.fetchTorrents(ctx, url)
 }
 
-// User will return a user's Torrents
-func (c *Client) User(opt UserOptions) ([]*Torrent, error) {
-	ctx := context.Background()
-	return c.UserWithContext(ctx, opt)
-}
-
-// FilterByUsers will filter the results and return only those from the given
-// users list
-func FilterByUsers(torrents []*Torrent, users []string) []*Torrent {
-	filteredTorrents := []*Torrent{}
-	for _, t := range torrents {
-		for _, u := range users {
-			if t.User == u {
-				filteredTorrents = append(filteredTorrents, t)
-			}
-		}
+// User lists the torrents uploaded by a user
+func (c *Client) User(ctx context.Context, user string, opts *Options) ([]*Torrent, error) {
+	if opts == nil {
+		opts = &DefaultOptions
 	}
-	return filteredTorrents
+	url := c.Endpoint + "/user/" + user + opts.String()
+	return c.fetchTorrents(ctx, url)
 }
