@@ -47,11 +47,11 @@ func run() error {
 
     for _, t := range torrents {
         fmt.Println("--------------")
-        fmt.Printf("%s\nUploaded by %q (%d seeds / %d peers)\n",
+        fmt.Printf("%s\nUploaded by %q (%d seeders / %d leechers)\n",
             t.Name,
             t.User,
-            t.Seeds,
-            t.Peers,
+            t.Seeders,
+            t.Leechers,
         )
     }
 

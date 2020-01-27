@@ -15,37 +15,37 @@ func TestParser(t *testing.T) {
 	}{
 		{
 			name:          "peers error",
-			rawData:       &rawData{Peers: "invalid"},
-			expectedError: ErrParserPeers,
+			rawData:       &rawData{Leechers: "invalid"},
+			expectedError: ErrParserLeechers,
 		},
 		{
-			name:          "seeds error",
-			rawData:       &rawData{Peers: "0", Seeds: "invalid"},
-			expectedError: ErrParserSeeds,
+			name:          "seeders error",
+			rawData:       &rawData{Leechers: "0", Seeders: "invalid"},
+			expectedError: ErrParserSeeders,
 		},
 		{
 			name: "size error simple",
 			rawData: &rawData{
-				Peers: "10",
-				Seeds: "100",
-				Desc:  "invalid",
+				Leechers: "10",
+				Seeders:  "100",
+				Desc:     "invalid",
 			},
 			expectedError: ErrParserSize,
 		},
 		{
 			name: "size error humanize",
 			rawData: &rawData{
-				Peers: "10",
-				Seeds: "100",
-				Desc:  "Uploaded 09-10 2011, Size 703.9 invalid, ULed by YIFY",
+				Leechers: "10",
+				Seeders:  "100",
+				Desc:     "Uploaded 09-10 2011, Size 703.9 invalid, ULed by YIFY",
 			},
 			expectedError: ErrParserSize,
 		},
 		{
 			name: "category error",
 			rawData: &rawData{
-				Peers:    "10",
-				Seeds:    "100",
+				Leechers: "10",
+				Seeders:  "100",
 				Desc:     "Uploaded 09-10 2011, Size 703.9 MiB, ULed by YIFY",
 				Category: "invalid",
 			},
@@ -54,8 +54,8 @@ func TestParser(t *testing.T) {
 		{
 			name: "sub category error",
 			rawData: &rawData{
-				Peers:       "10",
-				Seeds:       "100",
+				Leechers:    "10",
+				Seeders:     "100",
 				Desc:        "Uploaded 09-10 2011, Size 703.9 MiB, ULed by YIFY",
 				Category:    "/browse/200",
 				SubCategory: "invalid",
@@ -68,8 +68,8 @@ func TestParser(t *testing.T) {
 				Name:        "The Matrix",
 				User:        "YIFI",
 				Magnet:      "magnet://stuff",
-				Peers:       "10",
-				Seeds:       "100",
+				Leechers:    "10",
+				Seeders:     "100",
 				Desc:        "Uploaded 09-10 2011, Size 703.9 MiB, ULed by YIFY",
 				Category:    "/browse/200",
 				SubCategory: "/browse/207",
@@ -78,8 +78,8 @@ func TestParser(t *testing.T) {
 				Name:        "The Matrix",
 				User:        "YIFI",
 				Magnet:      "magnet://stuff",
-				Peers:       10,
-				Seeds:       100,
+				Leechers:    10,
+				Seeders:     100,
 				Size:        738092646,
 				Category:    Video,
 				SubCategory: VideoHDMovies,
@@ -108,7 +108,7 @@ func TestParser(t *testing.T) {
 }
 
 func TestParserError(t *testing.T) {
-	err := ErrParserPeers
+	err := ErrParserLeechers
 	if !errors.As(err, &ParserError{}) {
 		t.Fatalf("the error should be a parser error")
 	}

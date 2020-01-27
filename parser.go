@@ -10,8 +10,8 @@ import (
 
 // Custom parser error
 var (
-	ErrParserPeers       = NewParserError("tpb: failed to parse peers")
-	ErrParserSeeds       = NewParserError("tpb: failed to parse seeds")
+	ErrParserLeechers    = NewParserError("tpb: failed to parse leechers")
+	ErrParserSeeders     = NewParserError("tpb: failed to parse seeders")
 	ErrParserSize        = NewParserError("tpb: failed to parse size")
 	ErrParserCategory    = NewParserError("tpb: failed to parse category")
 	ErrParserSubCategory = NewParserError("tpb: failed to parse sub category")
@@ -41,8 +41,8 @@ type rawData struct {
 	Torrent *Torrent `selector:"-"`
 
 	Name        string `selector:"td > div.detName > a.detLink"`
-	Peers       string `selector:"td:nth-child(4)"`
-	Seeds       string `selector:"td:nth-child(3)"`
+	Leechers    string `selector:"td:nth-child(4)"`
+	Seeders     string `selector:"td:nth-child(3)"`
 	User        string `selector:"a.detDesc"`
 	Magnet      string `selector:"td:nth-child(2) > a:nth-child(2)" attr:"href"`
 	Desc        string `selector:"td:nth-child(2) > font"`
@@ -60,13 +60,13 @@ func (rd *rawData) parse() (*Torrent, error) {
 	rd.Torrent.Magnet = rd.Magnet
 
 	var err error
-	rd.Torrent.Peers, err = strconv.Atoi(rd.Peers)
+	rd.Torrent.Leechers, err = strconv.Atoi(rd.Leechers)
 	if err != nil {
-		return nil, ErrParserPeers
+		return nil, ErrParserLeechers
 	}
-	rd.Torrent.Seeds, err = strconv.Atoi(rd.Seeds)
+	rd.Torrent.Seeders, err = strconv.Atoi(rd.Seeders)
 	if err != nil {
-		return nil, ErrParserSeeds
+		return nil, ErrParserSeeders
 	}
 
 	// Get the size from description
