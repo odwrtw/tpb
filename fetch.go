@@ -6,7 +6,7 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
-func (c *Client) fetchTorrents(ctx context.Context, url string) ([]*Torrent, error) {
+func fetchTorrents(ctx context.Context, url string) ([]*Torrent, error) {
 	var err error
 	torrents := []*Torrent{}
 	done := make(chan struct{})
@@ -20,9 +20,13 @@ func (c *Client) fetchTorrents(ctx context.Context, url string) ([]*Torrent, err
 			}
 
 			data := rawData{}
-			se.Unmarshal(&data)
+			err = se.Unmarshal(&data)
+			if err != nil {
+				return
+			}
 
-			torrent, err := data.parse()
+			var torrent *Torrent
+			torrent, err = data.parse()
 			if err != nil {
 				return
 			}
@@ -33,7 +37,10 @@ func (c *Client) fetchTorrents(ctx context.Context, url string) ([]*Torrent, err
 	})
 
 	go func() {
-		err = co.Visit(url)
+		visitErr := co.Visit(url)
+		if visitErr != nil {
+			err = visitErr
+		}
 		close(done)
 	}()
 
@@ -41,6 +48,6 @@ func (c *Client) fetchTorrents(ctx context.Context, url string) ([]*Torrent, err
 	case <-done:
 		return torrents, err
 	case <-ctx.Done():
-		return torrents, ctx.Err()
+		return nil, ctx.Err()
 	}
 }
