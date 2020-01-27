@@ -1,12 +1,12 @@
 package tpb
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 )
 
 func TestParser(t *testing.T) {
-
 	tt := []struct {
 		name            string
 		rawData         *rawData
@@ -104,5 +104,18 @@ func TestParser(t *testing.T) {
 				t.Fatalf("expected:\n%+v\ngot:\n%+v", tc.expectedTorrent, torrent)
 			}
 		})
+	}
+}
+
+func TestParserError(t *testing.T) {
+	err := ErrParserPeers
+	if !errors.As(err, &ParserError{}) {
+		t.Fatalf("the error should be a parser error")
+	}
+
+	errStr := err.Error()
+	unwrappedErr := err.Unwrap().Error()
+	if errStr != unwrappedErr {
+		t.Fatalf("the errors do not match")
 	}
 }
