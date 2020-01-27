@@ -7,6 +7,7 @@ type TorrentCategory int
 const (
 	// All is all the results
 	All TorrentCategory = 0
+
 	// Audio matches only audio results
 	Audio           = 100
 	AudioMusic      = 101
@@ -14,6 +15,7 @@ const (
 	AudioSoundclips = 103
 	AudioFLAC       = 104
 	AudioOther      = 199
+
 	// Video matches only video results
 	Video            = 200
 	VideoMovies      = 201
@@ -26,6 +28,7 @@ const (
 	VideoHDTVshows   = 208
 	Video3D          = 209
 	VideoOther       = 299
+
 	// Applications matches only app results
 	Applications         = 300
 	ApplicationsWindows  = 301
@@ -35,6 +38,7 @@ const (
 	ApplicationsIOS      = 305
 	ApplicationsAndroid  = 306
 	ApplicationsOtherOS  = 399
+
 	// Games matches only game results
 	Games         = 400
 	GamesPC       = 401
@@ -46,6 +50,7 @@ const (
 	GamesIOS      = 407
 	GamesAndroid  = 408
 	GamesOther    = 499
+
 	// Other matches all the other categories
 	Other          = 600
 	OtherEbooks    = 601
