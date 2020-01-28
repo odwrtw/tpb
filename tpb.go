@@ -21,18 +21,13 @@ type Client struct {
 	DefaultTimeout time.Duration
 }
 
-// NewWithEndpoints returns a new client with multiple endpoints
-func NewWithEndpoints(endpoints []string) *Client {
+// New return a new client with a the given endpoint(s)
+func New(endpoints ...string) *Client {
 	return &Client{
-		endpoints:      newEndpoints(endpoints),
+		endpoints:      newEndpoints(endpoints...),
 		MaxTries:       len(endpoints),
 		DefaultTimeout: defaultTimeout,
 	}
-}
-
-// New return a new client with a single endpoint
-func New(endpoint string) *Client {
-	return NewWithEndpoints([]string{endpoint})
 }
 
 func (c *Client) fetch(ctx context.Context, path string) ([]*Torrent, error) {

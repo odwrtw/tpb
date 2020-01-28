@@ -29,11 +29,11 @@ func main() {
 func run() error {
     // The client supports multiple endpoints and will try to use one that
     // works
-    client := tpb.NewWithEndpoints([]string{
+    client := tpb.New(
         "https://thepiratebay.org",
         "https://mypirate.cc",
         "https://piratebay.life",
-    })
+    )
 
     // You can create a context to cancel the search
     ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
