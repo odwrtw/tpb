@@ -13,7 +13,7 @@ type endpoint struct {
 
 type endpoints []*endpoint
 
-func newEndpoints(urls []string) endpoints {
+func newEndpoints(urls ...string) endpoints {
 	e := make([]*endpoint, len(urls))
 	for i, u := range urls {
 		e[i] = &endpoint{

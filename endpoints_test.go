@@ -14,7 +14,7 @@ func TestNewEndpoints(t *testing.T) {
 		"http://test4.com",
 	}
 
-	got := newEndpoints(urls)
+	got := newEndpoints(urls...)
 	expected := endpoints{
 		{baseURL: urls[0][:16]},
 		{baseURL: urls[1]},
