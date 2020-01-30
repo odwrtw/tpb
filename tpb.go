@@ -17,16 +17,16 @@ type Client struct {
 	// MaxTries represent the number total number of endpoint to try to find a
 	// result
 	MaxTries int
-	// DefaultTimeout defines the timeout to use by endpoint
-	DefaultTimeout time.Duration
+	// EndpointTimeout defines the timeout to use by endpoint
+	EndpointTimeout time.Duration
 }
 
 // New return a new client with a the given endpoint(s)
 func New(endpoints ...string) *Client {
 	return &Client{
-		endpoints:      newEndpoints(endpoints...),
-		MaxTries:       len(endpoints),
-		DefaultTimeout: defaultTimeout,
+		endpoints:       newEndpoints(endpoints...),
+		MaxTries:        len(endpoints),
+		EndpointTimeout: defaultTimeout,
 	}
 }
 
@@ -38,7 +38,7 @@ func (c *Client) fetch(ctx context.Context, path string) ([]*Torrent, error) {
 			return nil, ErrMissingEndpoint
 		}
 
-		timeoutCtx, cancel := context.WithTimeout(ctx, c.DefaultTimeout)
+		timeoutCtx, cancel := context.WithTimeout(ctx, c.EndpointTimeout)
 		defer cancel()
 
 		var torrents []*Torrent
