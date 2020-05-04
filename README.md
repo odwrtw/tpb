@@ -30,9 +30,8 @@ func run() error {
     // The client supports multiple endpoints and will try to use one that
     // works
     client := tpb.New(
-        "https://thepiratebay.org",
-        "https://mypirate.cc",
-        "https://piratebay.life",
+        "https://fakeapibay.org",
+        "https://apibay.org",
     )
 
     // You can create a context to cancel the search
@@ -40,18 +39,23 @@ func run() error {
     defer cancel()
 
     // You can add search options or nil for the default options
-    torrents, err := client.Search(ctx, "Ubuntu", nil)
+    // torrents, err := client.Search(ctx, "Ubuntu", nil)
+    // Or you can search within a given category
+    torrents, err := client.Search(ctx, "Ubuntu", &tpb.SearchOptions{
+        Category: tpb.Applications,
+    })
     if err != nil {
         return err
     }
 
     for _, t := range torrents {
         fmt.Println("--------------")
-        fmt.Printf("%s\nUploaded by %q (%d seeders / %d leechers)\n",
+        fmt.Printf("%s\nUploaded by %q (%d seeders / %d leechers)\nMagnet: %s",
             t.Name,
             t.User,
             t.Seeders,
             t.Leechers,
+            t.Magnet(),
         )
     }
 

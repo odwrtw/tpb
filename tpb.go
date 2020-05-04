@@ -3,6 +3,9 @@ package tpb
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -30,53 +33,65 @@ func New(endpoints ...string) *Client {
 	}
 }
 
-func (c *Client) fetch(ctx context.Context, path string) ([]*Torrent, error) {
-	var err error
-	for i := 0; i < c.MaxTries; i++ {
-		endpoint := c.endpoints.best()
-		if endpoint == nil {
-			return nil, ErrMissingEndpoint
-		}
-
-		timeoutCtx, cancel := context.WithTimeout(ctx, c.EndpointTimeout)
-		defer cancel()
-
-		var torrents []*Torrent
-		torrents, err = fetchTorrents(timeoutCtx, endpoint.baseURL+path)
-		if err == nil {
-			return torrents, nil
-		}
-		endpoint.lastFailure = time.Now()
-
-		// Stop if the error is a parsing error
-		if errors.As(err, &ParserError{}) {
-			break
-		}
-
-		// Stop if the global context is done
-		if ctx.Err() != nil {
-			err = ctx.Err()
-			break
-		}
-	}
-
-	return nil, err
-}
-
-// Search will search Torrents
-func (c *Client) Search(ctx context.Context, search string, opts *Options) ([]*Torrent, error) {
+// Search will search torrents
+func (c *Client) Search(ctx context.Context, search string, opts *SearchOptions) ([]*Torrent, error) {
 	if opts == nil {
-		opts = &DefaultOptions
+		opts = &SearchOptions{
+			Category: All,
+		}
 	}
-	path := "/search/" + search + opts.String()
-	return c.fetch(ctx, path)
+	v := opts.Category.URLValue()
+	v.Add("q", search)
+	path := "/q.php?" + v.Encode()
+	return c.fetchTorrents(ctx, path)
 }
 
 // User lists the torrents uploaded by a user
-func (c *Client) User(ctx context.Context, user string, opts *Options) ([]*Torrent, error) {
+func (c *Client) User(ctx context.Context, user string, opts *UserOptions) ([]*Torrent, error) {
 	if opts == nil {
-		opts = &DefaultOptions
+		opts = &UserOptions{
+			Page: 0,
+		}
 	}
-	path := "/user/" + user + opts.String()
-	return c.fetch(ctx, path)
+	query := fmt.Sprintf("user:%s:%d", user, opts.Page)
+	v := url.Values{}
+	v.Add("q", query)
+	path := "/q.php?" + v.Encode()
+	return c.fetchTorrents(ctx, path)
 }
+
+// Category lists the latest torrents for a category
+func (c *Client) Category(ctx context.Context, category TorrentCategory, opts *CategoryOptions) ([]*Torrent, error) {
+	if opts == nil {
+		opts = &CategoryOptions{
+			Page: 0,
+		}
+	}
+	query := fmt.Sprintf("category:%d:%d", category, opts.Page)
+	v := url.Values{}
+	v.Add("q", query)
+	path := "/q.php?" + v.Encode()
+	return c.fetchTorrents(ctx, path)
+}
+
+// Top100 lists the Top100 torrents
+func (c *Client) Top100(ctx context.Context, cat TorrentCategory) ([]*Torrent, error) {
+	var catString = "all"
+	if cat != All {
+		catString = strconv.Itoa(int(cat))
+	}
+	path := "/precompiled/data_top100_" + catString + ".json"
+	return c.fetchTorrents(ctx, path)
+}
+
+// Infos gets infos about a given torrent ID
+func (c *Client) Infos(ctx context.Context, id int) (*Torrent, error) {
+	t := &Torrent{}
+	v := url.Values{}
+	v.Add("id", strconv.Itoa(id))
+	path := "/t.php?" + v.Encode()
+	return t, c.fetch(ctx, path, &t)
+}
+
+// TODO: Implement FileList
+// curl https://apibay.org/f.php?id=36120091

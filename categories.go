@@ -1,5 +1,10 @@
 package tpb
 
+import (
+	"net/url"
+	"strconv"
+)
+
 // TorrentCategory represents the torrent categories
 type TorrentCategory int
 
@@ -9,54 +14,61 @@ const (
 	All TorrentCategory = 0
 
 	// Audio matches only audio results
-	Audio           = 100
-	AudioMusic      = 101
-	AudioAudiobooks = 102
-	AudioSoundclips = 103
-	AudioFLAC       = 104
-	AudioOther      = 199
+	Audio           TorrentCategory = 100
+	AudioMusic      TorrentCategory = 101
+	AudioAudiobooks TorrentCategory = 102
+	AudioSoundclips TorrentCategory = 103
+	AudioFLAC       TorrentCategory = 104
+	AudioOther      TorrentCategory = 199
 
 	// Video matches only video results
-	Video            = 200
-	VideoMovies      = 201
-	VideoMoviesDVDR  = 202
-	VideoMusicvideos = 203
-	VideoMovieclips  = 204
-	VideoTVshows     = 205
-	VideoHandheld    = 206
-	VideoHDMovies    = 207
-	VideoHDTVshows   = 208
-	Video3D          = 209
-	VideoOther       = 299
+	Video            TorrentCategory = 200
+	VideoMovies      TorrentCategory = 201
+	VideoMoviesDVDR  TorrentCategory = 202
+	VideoMusicvideos TorrentCategory = 203
+	VideoMovieclips  TorrentCategory = 204
+	VideoTVshows     TorrentCategory = 205
+	VideoHandheld    TorrentCategory = 206
+	VideoHDMovies    TorrentCategory = 207
+	VideoHDTVshows   TorrentCategory = 208
+	Video3D          TorrentCategory = 209
+	VideoOther       TorrentCategory = 299
 
 	// Applications matches only app results
-	Applications         = 300
-	ApplicationsWindows  = 301
-	ApplicationsMac      = 302
-	ApplicationsUNIX     = 303
-	ApplicationsHandheld = 304
-	ApplicationsIOS      = 305
-	ApplicationsAndroid  = 306
-	ApplicationsOtherOS  = 399
+	Applications         TorrentCategory = 300
+	ApplicationsWindows  TorrentCategory = 301
+	ApplicationsMac      TorrentCategory = 302
+	ApplicationsUNIX     TorrentCategory = 303
+	ApplicationsHandheld TorrentCategory = 304
+	ApplicationsIOS      TorrentCategory = 305
+	ApplicationsAndroid  TorrentCategory = 306
+	ApplicationsOtherOS  TorrentCategory = 399
 
 	// Games matches only game results
-	Games         = 400
-	GamesPC       = 401
-	GamesMac      = 402
-	GamesPSx      = 403
-	GamesXBOX360  = 404
-	GamesWii      = 405
-	GamesHandheld = 406
-	GamesIOS      = 407
-	GamesAndroid  = 408
-	GamesOther    = 499
+	Games         TorrentCategory = 400
+	GamesPC       TorrentCategory = 401
+	GamesMac      TorrentCategory = 402
+	GamesPSx      TorrentCategory = 403
+	GamesXBOX360  TorrentCategory = 404
+	GamesWii      TorrentCategory = 405
+	GamesHandheld TorrentCategory = 406
+	GamesIOS      TorrentCategory = 407
+	GamesAndroid  TorrentCategory = 408
+	GamesOther    TorrentCategory = 499
 
 	// Other matches all the other categories
-	Other          = 600
-	OtherEbooks    = 601
-	OtherComics    = 602
-	OtherPictures  = 603
-	OtherCovers    = 604
-	OtherPhysibles = 605
-	OtherOther     = 699
+	Other          TorrentCategory = 600
+	OtherEbooks    TorrentCategory = 601
+	OtherComics    TorrentCategory = 602
+	OtherPictures  TorrentCategory = 603
+	OtherCovers    TorrentCategory = 604
+	OtherPhysibles TorrentCategory = 605
+	OtherOther     TorrentCategory = 699
 )
+
+// URLValue returns the url.Values for a TorrentCategory
+func (cat *TorrentCategory) URLValue() *url.Values {
+	v := url.Values{}
+	v.Add("cat", strconv.Itoa(int(*cat)))
+	return &v
+}
