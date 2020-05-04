@@ -2,71 +2,82 @@ package tpb
 
 import (
 	"context"
-	"math/rand"
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"time"
-
-	"github.com/gocolly/colly/v2"
 )
 
-type ua []string
+func (c *Client) fetchTorrents(ctx context.Context, path string) ([]*Torrent, error) {
+	var torrents []*Torrent
+	err := c.fetch(ctx, path, &torrents)
+	if err != nil {
+		return nil, err
+	}
+	// If the search returned no results, there will be one "fake" torrent
+	// in the results which name is: "No results returned"
+	if len(torrents) == 1 && torrents[0].Name == "No results returned" {
+		return []*Torrent{}, nil
+	}
 
-func (u ua) random() string {
-	rand.Seed(time.Now().UnixNano())
-	return u[rand.Intn(len(u))]
+	return torrents, nil
 }
 
-var userAgents = ua{
-	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246",
-	"Mozilla/5.0 (X11; CrOS x86_64 8172.45.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.64 Safari/537.36",
-	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9",
-	"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36",
-	"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1",
-}
-
-func fetchTorrents(ctx context.Context, url string) ([]*Torrent, error) {
+// fetch will try to GET the path, trying all the endpoints if needed, and
+// unmarshal the results in the data interface
+func (c *Client) fetch(ctx context.Context, path string, data interface{}) error {
 	var err error
-	torrents := []*Torrent{}
+	for i := 0; i < c.MaxTries; i++ {
+		endpoint := c.endpoints.best()
+		if endpoint == nil {
+			return ErrMissingEndpoint
+		}
+
+		timeoutCtx, cancel := context.WithTimeout(ctx, c.EndpointTimeout)
+		defer cancel()
+
+		err = get(timeoutCtx, endpoint.baseURL+path, &data)
+		if err == nil {
+			return nil
+		}
+		endpoint.lastFailure = time.Now()
+
+		// Stop if the global context is done
+		if ctx.Err() != nil {
+			err = ctx.Err()
+			break
+		}
+	}
+
+	return err
+}
+
+// get will GET the url and unmarshal the results in the data interface
+func get(ctx context.Context, url string, data interface{}) error {
+	var err error
 	done := make(chan struct{})
 
-	co := colly.NewCollector(
-		colly.UserAgent(userAgents.random()),
-	)
-	co.OnHTML("#searchResult", func(e *colly.HTMLElement) {
-		e.ForEach("tbody > tr", func(i int, se *colly.HTMLElement) {
-			if err != nil {
-				// If an error occured already, don't do any more work
-				return
-			}
-
-			data := rawData{}
-			err = se.Unmarshal(&data)
-			if err != nil {
-				return
-			}
-
-			var torrent *Torrent
-			torrent, err = data.parse()
-			if err != nil {
-				return
-			}
-
-			torrents = append(torrents, torrent)
-		})
-		done <- struct{}{}
-	})
-
 	go func() {
-		visitErr := co.Visit(url)
-		if visitErr != nil {
-			err = visitErr
+		defer close(done)
+		var resp *http.Response
+		resp, err = http.Get(url)
+		if err != nil {
+			return
 		}
-		close(done)
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			err = fmt.Errorf("got status %d when making the request", resp.StatusCode)
+			return
+		}
+
+		err = json.NewDecoder(resp.Body).Decode(&data)
 	}()
 
 	select {
 	case <-done:
-		return torrents, err
+		return err
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return ctx.Err()
 	}
 }
