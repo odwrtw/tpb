@@ -9,38 +9,42 @@ import (
 
 // Torrent represents a Torrent
 type Torrent struct {
-	ID          int             `json:"id"`
-	Category    TorrentCategory `json:"category"`
-	Status      UserStatus      `json:"status"`
-	Name        string          `json:"name"`
-	NumFiles    int             `json:"num_files"`
-	Size        uint64          `json:"size"`
-	Seeders     int             `json:"seeders"`
-	Leechers    int             `json:"leechers"`
-	User        string          `json:"username"`
-	Added       time.Time       `json:"added"`
-	Description string          `json:"descripiton"`
-	InfoHash    string          `json:"info_hash"`
-	ImdbID      string          `json:"imdb"`
+	ID           int             `json:"id"`
+	Category     TorrentCategory `json:"category"`
+	CategoryName string          `json:"category_name"`
+	Status       UserStatus      `json:"status"`
+	Name         string          `json:"name"`
+	NumFiles     int             `json:"num_files"`
+	Size         uint64          `json:"size"`
+	Seeders      int             `json:"seeders"`
+	Leechers     int             `json:"leechers"`
+	User         string          `json:"username"`
+	Added        time.Time       `json:"added"`
+	Description  string          `json:"description"`
+	InfoHash     string          `json:"info_hash"`
+	ImdbID       string          `json:"imdb"`
+	MagnetLink   string          `json:"magnet_link"`
 }
 
 // UnmarshalJSON is a custom unmarshal function to handle timestamps and
 // boolean as int and convert them to the right type.
 func (t *Torrent) UnmarshalJSON(data []byte) error {
 	var aux struct {
-		ID          flexInt    `json:"id"`
-		Category    flexInt    `json:"category"`
-		Status      string     `json:"status"`
-		Name        string     `json:"name"`
-		NumFiles    flexInt    `json:"num_files"`
-		InfoHash    string     `json:"info_hash"`
-		Description string     `json:"descr"`
-		Leechers    flexInt    `json:"leechers"`
-		Seeders     flexInt    `json:"seeders"`
-		User        string     `json:"username"`
-		Size        flexInt    `json:"size"`
-		Added       flexInt    `json:"added"`
-		ImdbID      flexString `json:"imdb"`
+		ID           flexInt    `json:"id"`
+		Category     flexInt    `json:"category"`
+		CategoryName string     `json:"category_name"`
+		Status       string     `json:"status"`
+		Name         string     `json:"name"`
+		NumFiles     flexInt    `json:"num_files"`
+		InfoHash     string     `json:"info_hash"`
+		Description  string     `json:"descr"`
+		Leechers     flexInt    `json:"leechers"`
+		Seeders      flexInt    `json:"seeders"`
+		User         string     `json:"username"`
+		Size         flexInt    `json:"size"`
+		Added        flexInt    `json:"added"`
+		ImdbID       flexString `json:"imdb"`
+		MagnetLink   string     `json:"magnet_link"`
 	}
 
 	// Decode json into the aux struct
@@ -50,6 +54,7 @@ func (t *Torrent) UnmarshalJSON(data []byte) error {
 
 	t.ID = int(aux.ID)
 	t.Category = TorrentCategory(int(aux.Category))
+	t.CategoryName = aux.CategoryName
 	t.Status = UserStatus(aux.Status)
 	t.Name = aux.Name
 	t.NumFiles = int(aux.NumFiles)
@@ -61,6 +66,7 @@ func (t *Torrent) UnmarshalJSON(data []byte) error {
 	t.Description = aux.Description
 	t.InfoHash = aux.InfoHash
 	t.ImdbID = string(aux.ImdbID)
+	t.MagnetLink = aux.MagnetLink
 
 	return nil
 }

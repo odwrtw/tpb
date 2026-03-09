@@ -25,7 +25,7 @@ func (c *Client) fetchTorrents(ctx context.Context, path string) ([]*Torrent, er
 
 // fetch will try to GET the path, trying all the endpoints if needed, and
 // unmarshal the results in the data interface
-func (c *Client) fetch(ctx context.Context, path string, data interface{}) error {
+func (c *Client) fetch(ctx context.Context, path string, data any) error {
 	var err error
 	for i := 0; i < c.MaxTries; i++ {
 		endpoint := c.endpoints.best()
@@ -36,7 +36,7 @@ func (c *Client) fetch(ctx context.Context, path string, data interface{}) error
 		timeoutCtx, cancel := context.WithTimeout(ctx, c.EndpointTimeout)
 		defer cancel()
 
-		err = get(timeoutCtx, endpoint.baseURL+path, &data)
+		err = get(timeoutCtx, endpoint.baseURL+path, data)
 		if err == nil {
 			return nil
 		}
@@ -53,31 +53,21 @@ func (c *Client) fetch(ctx context.Context, path string, data interface{}) error
 }
 
 // get will GET the url and unmarshal the results in the data interface
-func get(ctx context.Context, url string, data interface{}) error {
-	var err error
-	done := make(chan struct{})
-
-	go func() {
-		defer close(done)
-		var resp *http.Response
-		resp, err = http.Get(url)
-		if err != nil {
-			return
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			err = fmt.Errorf("got status %d when making the request", resp.StatusCode)
-			return
-		}
-
-		err = json.NewDecoder(resp.Body).Decode(&data)
-	}()
-
-	select {
-	case <-done:
+func get(ctx context.Context, url string, data any) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
 		return err
-	case <-ctx.Done():
-		return ctx.Err()
 	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("got status %d when making the request", resp.StatusCode)
+	}
+
+	return json.NewDecoder(resp.Body).Decode(data)
 }
