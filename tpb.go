@@ -53,10 +53,10 @@ func (c *Client) User(ctx context.Context, user string, opts *UserOptions) ([]*T
 			Page: 0,
 		}
 	}
-	query := fmt.Sprintf("user:%s:%d", user, opts.Page)
 	v := url.Values{}
-	v.Add("q", query)
-	path := "/q.php?" + v.Encode()
+	v.Set("u", user)
+	v.Set("page", strconv.Itoa(opts.Page))
+	path := "/u.php?" + v.Encode()
 	return c.fetchTorrents(ctx, path)
 }
 
@@ -93,5 +93,11 @@ func (c *Client) Infos(ctx context.Context, id int) (*Torrent, error) {
 	return t, c.fetch(ctx, path, &t)
 }
 
-// TODO: Implement FileList
-// curl https://apibay.org/f.php?id=36120091
+// FileList returns the list of files in a torrent
+func (c *Client) FileList(ctx context.Context, id int) ([]*File, error) {
+	var files []*File
+	v := url.Values{}
+	v.Add("id", strconv.Itoa(id))
+	path := "/f.php?" + v.Encode()
+	return files, c.fetch(ctx, path, &files)
+}

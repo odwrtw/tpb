@@ -21,9 +21,21 @@ func TestMagnet(t *testing.T) {
 		Description: "description of Big Buck Bunny",
 		Added:       time.Unix(1509051120, 0),
 	}
-	expectedMagnet := `magnet:?xt=urn:btih:363BC69191230430C6758318D196CCD61DB61B647&dn=Big Buck Bunny&tr=udp://tracker.coppersurfer.tk:6969/announce&tr=udp://9.rarbg.to:2920/announce&tr=udp://tracker.opentrackr.org:1337&tr=udp://tracker.internetwarriors.net:1337/announce&tr=udp://tracker.leechers-paradise.org:6969/announce&tr=udp://tracker.coppersurfer.tk:6969/announce&tr=udp://tracker.pirateparty.gr:6969/announce&tr=udp://tracker.cyberia.is:6969/announce`
+	expectedMagnet := `magnet:?xt=urn:btih:363BC69191230430C6758318D196CCD61DB61B647&dn=Big Buck Bunny&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://open.tracker.cl:1337/announce&tr=udp://tracker.openbittorrent.com:6969/announce&tr=udp://opentracker.i2p.rocks:6969/announce&tr=udp://tracker.torrent.eu.org:451/announce&tr=udp://open.stealth.si:80/announce`
 	magnet := torrent.Magnet()
 	if magnet != expectedMagnet {
 		t.Fatalf("expected magnet %q, got %q", expectedMagnet, magnet)
+	}
+}
+
+func TestMagnetFromAPI(t *testing.T) {
+	apiMagnet := "magnet:?xt=urn:btih:AABBCC&dn=Some+Torrent&tr=udp://tracker.example.com:6969/announce"
+	torrent := &Torrent{
+		InfoHash:   "AABBCC",
+		Name:       "Some Torrent",
+		MagnetLink: apiMagnet,
+	}
+	if got := torrent.Magnet(); got != apiMagnet {
+		t.Fatalf("expected API magnet %q, got %q", apiMagnet, got)
 	}
 }

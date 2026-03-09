@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"reflect"
 	"testing"
 	"time"
@@ -85,7 +84,7 @@ func TestSearch(t *testing.T) {
 	defer ts.Close()
 
 	expected := []*Torrent{
-		&Torrent{
+		{
 			ID:       6665688,
 			Name:     "Big Buck Bunny",
 			InfoHash: "363BC69191230430C6758318D196CCD61DB61B647",
@@ -127,7 +126,7 @@ func TestUser(t *testing.T) {
 	defer ts.Close()
 
 	expected := []*Torrent{
-		&Torrent{
+		{
 			ID:       18837600,
 			Name:     "ArchLinux",
 			InfoHash: "B137DE1DF926E787FE263D4187B34B23",
@@ -154,7 +153,7 @@ func TestUser(t *testing.T) {
 		t.Fatalf("expected: \n%+v\n, got \n%+v", expected, got)
 	}
 
-	expectedRequestURI := "/q.php?q=" + url.QueryEscape("user:user1:0")
+	expectedRequestURI := "/u.php?page=0&u=user1"
 	if requestURI != expectedRequestURI {
 		t.Fatalf("expected URL %q, got %q", expectedRequestURI, requestURI)
 	}
@@ -169,7 +168,7 @@ func TestCategory(t *testing.T) {
 	defer ts.Close()
 
 	expected := []*Torrent{
-		&Torrent{
+		{
 			ID:       6665688,
 			Name:     "Big Buck Bunny",
 			InfoHash: "363BC69191230430C6758318D196CCD61DB61B647",
@@ -196,7 +195,7 @@ func TestCategory(t *testing.T) {
 		t.Fatalf("expected: \n%+v\n, got \n%+v", expected, got)
 	}
 
-	expectedRequestURI := "/q.php?q=" + url.QueryEscape("category:0:0")
+	expectedRequestURI := "/q.php?q=category%3A0%3A0"
 	if requestURI != expectedRequestURI {
 		t.Fatalf("expected URL %q, got %q", expectedRequestURI, requestURI)
 	}
@@ -211,7 +210,7 @@ func TestTop100(t *testing.T) {
 	defer ts.Close()
 
 	expected := []*Torrent{
-		&Torrent{
+		{
 			ID:       6665688,
 			Name:     "Big Buck Bunny",
 			InfoHash: "363BC69191230430C6758318D196CCD61DB61B647",
@@ -280,6 +279,40 @@ func TestTorrentInfo(t *testing.T) {
 	}
 
 	expectedRequestURI := "/t.php?id=6665688"
+	if requestURI != expectedRequestURI {
+		t.Fatalf("expected URL %q, got %q", expectedRequestURI, requestURI)
+	}
+}
+
+var rawFileList = `[
+  {"name": ["Big Buck Bunny", "BigBuckBunny.mp4"], "size": "736780288"},
+  {"name": ["Big Buck Bunny", "poster.jpg"],       "size": "1314718"}
+]`
+
+func TestFileList(t *testing.T) {
+	var requestURI string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestURI = r.RequestURI
+		fmt.Fprint(w, rawFileList)
+	}))
+	defer ts.Close()
+
+	expected := []*File{
+		{Name: "Big Buck Bunny/BigBuckBunny.mp4", Size: 736780288},
+		{Name: "Big Buck Bunny/poster.jpg", Size: 1314718},
+	}
+
+	client := New(ts.URL)
+	got, err := client.FileList(context.Background(), 6665688)
+	if err != nil {
+		t.Fatalf("got error from FileList: %q", err)
+	}
+
+	if !reflect.DeepEqual(got, expected) {
+		t.Fatalf("expected: \n%+v\n, got \n%+v", expected, got)
+	}
+
+	expectedRequestURI := "/f.php?id=6665688"
 	if requestURI != expectedRequestURI {
 		t.Fatalf("expected URL %q, got %q", expectedRequestURI, requestURI)
 	}
