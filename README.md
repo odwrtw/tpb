@@ -1,9 +1,8 @@
 # Golang scrapper for thepiratebay
 
-[![Build Status](https://travis-ci.org/odwrtw/tpb.svg?branch=master)](https://travis-ci.org/odwrtw/tpb)
+[![CI](https://github.com/odwrtw/tpb/actions/workflows/ci.yml/badge.svg)](https://github.com/odwrtw/tpb/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/odwrtw/tpb)](https://goreportcard.com/report/github.com/odwrtw/tpb)
 [![GoDoc](https://godoc.org/github.com/odwrtw/tpb?status.png)](http://godoc.org/github.com/odwrtw/tpb)
-[![Coverage Status](https://coveralls.io/repos/github/odwrtw/tpb/badge.svg?branch=master)](https://coveralls.io/github/odwrtw/tpb?branch=master)
 
 ## Exemple
 
