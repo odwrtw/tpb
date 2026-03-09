@@ -65,6 +65,9 @@ func get(ctx context.Context, url string, data any) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return ErrRateLimited
+	}
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("got status %d when making the request", resp.StatusCode)
 	}

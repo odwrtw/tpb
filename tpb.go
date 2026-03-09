@@ -11,8 +11,12 @@ import (
 
 var defaultTimeout = 10 * time.Second
 
-// ErrMissingEndpoint is the error returned if there's no endpoint
-var ErrMissingEndpoint = errors.New("tpb: missing endpoint")
+var (
+	// ErrMissingEndpoint is the error returned if there's no endpoint
+	ErrMissingEndpoint = errors.New("tpb: missing endpoint")
+	// ErrRateLimited is returned when the server responds with HTTP 429
+	ErrRateLimited = errors.New("tpb: rate limited")
+)
 
 // Client represent a Client used to make Search
 type Client struct {
